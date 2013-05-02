@@ -5,6 +5,7 @@ use warnings;
 use autodie;
 use Moo;
 use Method::Signatures;
+use WWW::Mechanize;
 use Carp qw(croak);
 
 # ABSTRACT: Extract mood information from Moodscope
@@ -15,11 +16,11 @@ use Carp qw(croak);
 
 =cut
 
-has url       => (isa => 'Str',  is => 'ro'                       );
-has agent     => (               is => 'rw'                       );
-has _fetched  => (isa => 'Bool', is => 'rw', default => sub { 0 } );
-has _as_array => (               is => 'rw'                       );
-has _as_hash  => (               is => 'rw'                       );
+has url       => ( is => 'ro'                       );
+has agent     => ( is => 'rw'                       );
+has _fetched  => ( is => 'rw', default => sub { 0 } );
+has _as_array => ( is => 'rw'                       );
+has _as_hash  => ( is => 'rw'                       );
 
 method BUILD($args) {
     my $keep_alive = $args->{keep_alive} // 1;
@@ -29,6 +30,7 @@ method BUILD($args) {
             agent      => "Perl/$], WebService::MoodScope/" . $self->VERSION,
             keep_alive => $keep_alive,
         );
+        $self->agent($agent);
     }
 
     return;
@@ -47,10 +49,10 @@ method _fetch() {
 
     # Find the data section.
 
-    my ($data) = $content =~ m{^data: \[\s*([^]]*?)\s+\]}msx;
+    my ($data) = $content =~ m{^data:\s+\[\s*([^]]*?)\s+\]}msx;
 
     if (not $data) {
-        croak "No recogniseable moodscope data at " . $self->url;
+        croak "No recogniseable moodscope data at " . $self->url . "\n\n" . $content;
     }
 
     # Extract data from each row
@@ -67,7 +69,7 @@ method _fetch() {
         my ($month) = $+{month} + 1;    # Month zero? Thanks moodscope! :)
 
         my $entry = {
-            date => sprintf("04%d-%02d-%02d",$+{year}, $+{month}+1, $+{day}),
+            date => sprintf("%4d-%02d-%02d",$+{year}, $+{month}+1, $+{day}),
             mood => $+{mood},
         };
 

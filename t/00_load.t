@@ -8,4 +8,10 @@ use Test::More;
 
 use_ok('WebService::Moodscope');
 
+my $test = WebService::Moodscope->new(
+    url => 'http://example.com/',
+);
+
+isa_ok($test, 'WebService::Moodscope');
+
 done_testing();
